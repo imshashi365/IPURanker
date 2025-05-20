@@ -32,7 +32,7 @@ export default function Navbar() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8" aria-label="Global">
         <div className="flex lg:flex-1">
           <Link href="/" className="-m-1.5 p-1.5">
-            <span className="text-2xl font-bold text-blue-600">GGSIPU Portal</span>
+            <span className="text-2xl font-bold text-blue-600">IPU Insight</span>
           </Link>
         </div>
         <div className="flex lg:hidden">
