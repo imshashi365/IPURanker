@@ -1,56 +1,56 @@
 import Link from "next/link"
+import { GraduationCap, Twitter, Linkedin, Github } from "lucide-react"
 
 export default function Footer() {
   return (
-    <footer className="bg-blue-600 text-white">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-lg font-semibold mb-4">GGSIPU Student Portal</h3>
-            <p className="text-blue-100">
-              A comprehensive platform for students of Guru Gobind Singh Indraprastha University and its affiliated
-              colleges.
+    <footer className="bg-muted/30 border-t">
+      <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Branding Section */}
+          <div className="md:col-span-2 lg:col-span-1">
+            <Link href="/" className="flex items-center mb-4">
+              <GraduationCap className="h-8 w-8 text-primary" />
+              <span className="ml-3 text-xl font-bold text-foreground">IPURanker</span>
+            </Link>
+            <p className="text-muted-foreground text-sm max-w-xs">
+              A comprehensive platform for students of Guru Gobind Singh Indraprastha University and its affiliated colleges.
             </p>
           </div>
+
+          {/* Quick Links Section */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/" className="text-blue-100 hover:text-white">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link href="/placements" className="text-blue-100 hover:text-white">
-                  Placements
-                </Link>
-              </li>
-              <li>
-                <Link href="/news" className="text-blue-100 hover:text-white">
-                  News & Updates
-                </Link>
-              </li>
-              <li>
-                <Link href="/colleges" className="text-blue-100 hover:text-white">
-                  Colleges
-                </Link>
-              </li>
+            <h3 className="text-sm font-semibold text-foreground tracking-wider uppercase mb-4">Quick Links</h3>
+            <ul className="space-y-3">
+              <li><Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">Home</Link></li>
+              <li><Link href="/placements" className="text-sm text-muted-foreground hover:text-primary transition-colors">Placements</Link></li>
+              <li><Link href="/news" className="text-sm text-muted-foreground hover:text-primary transition-colors">News & Updates</Link></li>
+              <li><Link href="/colleges" className="text-sm text-muted-foreground hover:text-primary transition-colors">Colleges</Link></li>
             </ul>
           </div>
+
+          {/* Contact Section */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Contact</h3>
-            <p className="text-blue-100">
-              Guru Gobind Singh Indraprastha University
-              <br />
-              Sector 16C, Dwarka
-              <br />
-              New Delhi - 110078
-            </p>
-            <p className="mt-2 text-blue-100">Email: info@ipu.ac.in</p>
+            <h3 className="text-sm font-semibold text-foreground tracking-wider uppercase mb-4">Contact</h3>
+            <address className="text-sm text-muted-foreground not-italic space-y-3">
+              <p>Guru Gobind Singh Indraprastha University<br />Sector 16C, Dwarka<br />New Delhi - 110078</p>
+              <p>Email: <a href="mailto:info@ipu.ac.in" className="hover:text-primary transition-colors">info@ipu.ac.in</a></p>
+            </address>
+          </div>
+
+          {/* Social Media Section */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground tracking-wider uppercase mb-4">Follow Us</h3>
+            <div className="flex space-x-4">
+              <Link href="#" aria-label="Twitter" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-6 w-6" /></Link>
+              <Link href="#" aria-label="LinkedIn" className="text-muted-foreground hover:text-primary transition-colors"><Linkedin className="h-6 w-6" /></Link>
+              <Link href="#" aria-label="GitHub" className="text-muted-foreground hover:text-primary transition-colors"><Github className="h-6 w-6" /></Link>
+            </div>
           </div>
         </div>
-        <div className="mt-8 border-t border-blue-500 pt-8 text-center text-blue-100">
-          <p>&copy; {new Date().getFullYear()} GGSIPU Student Portal. All rights reserved.</p>
+
+        {/* Copyright Section */}
+        <div className="mt-12 border-t border-border pt-8 text-center">
+          <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} IPURanker. All rights reserved.</p>
         </div>
       </div>
     </footer>

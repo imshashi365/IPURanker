@@ -10,6 +10,11 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  .bg-dot-pattern {
+    background-image: radial-gradient(hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+    background-size: 1rem 1rem;
+  }
 }
 
 @layer base {
