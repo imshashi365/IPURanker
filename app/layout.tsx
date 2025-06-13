@@ -9,7 +9,7 @@ import Footer from "@/components/footer"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "IPU Insight PRO - Your GGSIPU Portal",
+  title: "IPURanker - Your GGSIPU Portal",
   description: "A comprehensive portal for GGSIPU students with resources, results, and information",
   icons: {
     icon: "/favicon.ico",
