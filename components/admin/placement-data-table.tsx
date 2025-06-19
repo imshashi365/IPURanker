@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MoreHorizontal, Plus, Upload } from "lucide-react";
-// @ts-ignore
 import Papa, { ParseResult } from "papaparse";
 
 type Placement = {
@@ -75,32 +74,83 @@ export default function PlacementDataTable() {
       return;
     }
     setUploading(true);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results: ParseResult<any>) => {
-        try {
-          const records = results.data;
-          const res = await fetch("/api/placements/bulk-upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ records }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || "Upload failed");
-          setUploadSuccess(`Uploaded ${data.inserted} records successfully!`);
-          fetchPlacements();
-        } catch (err: any) {
-          setUploadError(err.message || "Upload failed");
-        } finally {
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const csvText = event.target?.result as string;
+      // @ts-ignore
+      Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: header => header.trim().toLowerCase(),
+        complete: async (results: ParseResult<any>) => {
+          try {
+            const requiredFields = ["company", "branch", 'year', 'ctc', 'college', 'students'];
+            
+            const processedRecords = results.data.map((record, index) => {
+              // Trim all string values in the record
+              const trimmedRecord: { [key: string]: any } = {};
+              for (const key in record) {
+                trimmedRecord[key] = typeof record[key] === 'string' ? record[key].trim() : record[key];
+              }
+
+              // Basic validation and type conversion
+              const year = parseInt(trimmedRecord.year, 10);
+              const ctc = parseFloat(trimmedRecord.ctc);
+              const studentCount = parseInt(trimmedRecord.students, 10);
+
+              if (isNaN(year) || isNaN(ctc) || isNaN(studentCount)) {
+                throw new Error(`Invalid number format in row ${index + 2}. Year: '${trimmedRecord.year}', CTC: '${trimmedRecord.ctc}', Students: '${trimmedRecord.students}'. All must be numbers.`);
+              }
+
+              for (const field of requiredFields) {
+                if (!trimmedRecord[field] && trimmedRecord[field] !== 0) {
+                  throw new Error(`Missing required field '${field}' in row ${index + 2}. Please check the CSV headers.`);
+                }
+              }
+
+              return {
+                company: trimmedRecord.company,
+                branch: trimmedRecord.branch,
+                college: trimmedRecord.college,
+                role: trimmedRecord.role,
+                year: year,
+                ctc: ctc,
+                count: studentCount,
+              };
+            }).filter(Boolean); // Filter out any null/undefined from potential errors
+
+            if (processedRecords.length === 0) {
+              throw new Error("CSV file is empty or contains no valid records.");
+            }
+
+            const res = await fetch("/api/placements/bulk-upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ records: processedRecords }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Upload failed");
+            setUploadSuccess(`Uploaded ${data.inserted} records successfully!`);
+            fetchPlacements();
+          } catch (err: any) {
+            setUploadError(err.message || "Upload failed");
+          } finally {
+            setUploading(false);
+          }
+        },
+        error: (err: Papa.ParseError) => {
+          setUploadError("CSV parse error: " + err.message);
           setUploading(false);
-        }
-      },
-      error: (err: Papa.ParseError) => {
-        setUploadError("CSV parse error: " + err.message);
-        setUploading(false);
-      },
-    });
+        },
+      });
+    };
+    reader.onerror = () => {
+      setUploadError("Failed to read the file.");
+      setUploading(false);
+    };
+    reader.readAsText(file);
   };
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

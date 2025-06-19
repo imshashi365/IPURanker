@@ -9,7 +9,7 @@ import Footer from "@/components/footer"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "IPURanker - Your GGSIPU Portal",
+  title: "IPUBuddy - Your GGSIPU Portal",
   description: "A comprehensive portal for GGSIPU students with resources, results, and information",
   icons: {
     icon: "/favicon.ico",
@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false} disableTransitionOnChange>
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-grow">{children}</main>

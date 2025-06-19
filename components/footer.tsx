@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="md:col-span-2 lg:col-span-1">
             <Link href="/" className="flex items-center mb-4">
               <GraduationCap className="h-8 w-8 text-primary" />
-              <span className="ml-3 text-xl font-bold text-foreground">IPURanker</span>
+              <span className="ml-3 text-xl font-bold text-foreground">IPUBuddy</span>
             </Link>
             <p className="text-muted-foreground text-sm max-w-xs">
               A comprehensive platform for students of Guru Gobind Singh Indraprastha University and its affiliated colleges.

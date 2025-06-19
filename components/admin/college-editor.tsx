@@ -56,6 +56,8 @@ function useColleges() {
 
 export default function CollegeEditor() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingCollege, setEditingCollege] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { colleges, loading, error, refresh } = useColleges();
 
   // Form state
@@ -102,6 +104,63 @@ export default function CollegeEditor() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleUpdateCollege(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingCollege) return;
+    
+    setSaving(true);
+    setErrorMsg(null);
+    try {
+      const placementStats = {
+        placementRate,
+        topCTC,
+        avgCTC,
+      };
+      
+      const res = await fetch(`/api/colleges/${editingCollege._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          shortName,
+          location,
+          description,
+          courses: courses.split(",").map((c) => c.trim()).filter(Boolean),
+          logoUrl,
+          placementStats,
+          website,
+        }),
+      });
+      
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to update college");
+      
+      // Reset form and close dialog
+      setEditingCollege(null);
+      setIsEditDialogOpen(false);
+      refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to update college");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleEditClick(college: any) {
+    setEditingCollege(college);
+    setName(college.name);
+    setShortName(college.shortName || "");
+    setLocation(college.location || "");
+    setDescription(college.description || "");
+    setCourses(Array.isArray(college.courses) ? college.courses.join(", ") : "");
+    setWebsite(college.website || "");
+    setLogoUrl(college.logoUrl || "");
+    setPlacementRate(college.placementStats?.placementRate || "");
+    setTopCTC(college.placementStats?.topCTC || "");
+    setAvgCTC(college.placementStats?.avgCTC || "");
+    setIsEditDialogOpen(true);
   }
 
   return (
@@ -226,7 +285,7 @@ export default function CollegeEditor() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditClick(college)}>Edit</DropdownMenuItem>
                         <DropdownMenuItem>View Profile</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
@@ -239,6 +298,75 @@ export default function CollegeEditor() {
           </Table>
         )}
       </div>
+
+      {/* Edit College Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit College Profile</DialogTitle>
+            <DialogDescription>
+              Update the college profile details below.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="grid gap-4 py-4" onSubmit={handleUpdateCollege}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">College Name</Label>
+                <Input id="edit-name" value={name} onChange={e => setName(e.target.value)} placeholder="Full college name" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-shortName">Short Name/Acronym</Label>
+                <Input id="edit-shortName" value={shortName} onChange={e => setShortName(e.target.value)} placeholder="E.g., USICT" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-location">Location</Label>
+              <Input id="edit-location" value={location} onChange={e => setLocation(e.target.value)} placeholder="College location" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-website">Website</Label>
+              <Input id="edit-website" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://college.edu" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea id="edit-description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Brief description of the college" rows={3} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-courses">Courses Offered</Label>
+                <Input id="edit-courses" value={courses} onChange={e => setCourses(e.target.value)} placeholder="Comma separated list of courses" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-placementRate">Placement Rate</Label>
+                <Input id="edit-placementRate" value={placementRate} onChange={e => setPlacementRate(e.target.value)} placeholder="E.g., 95%" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-topCTC">Top CTC</Label>
+                <Input id="edit-topCTC" value={topCTC} onChange={e => setTopCTC(e.target.value)} placeholder="E.g., ₹45 LPA" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-avgCTC">Average CTC</Label>
+                <Input id="edit-avgCTC" value={avgCTC} onChange={e => setAvgCTC(e.target.value)} placeholder="E.g., ₹12 LPA" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-logoUrl">College Logo URL</Label>
+              <Input id="edit-logoUrl" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="Paste image URL here" />
+            </div>
+            {errorMsg && <div className="text-red-500 text-sm">{errorMsg}</div>}
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "Updating..." : "Update College"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
