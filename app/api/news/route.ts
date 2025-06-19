@@ -1,37 +1,166 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Blog from '@/models/Blog';
+import Blog, { IBlog } from '@/models/Blog';
+
+type BlogDocument = IBlog & {
+  _id: string;
+  __v?: number;
+};
 
 // POST /api/news - Create a new news post
 export async function POST(req: NextRequest) {
   await dbConnect();
   try {
-    const { title, content, author, tags, publishedAt, scheduledFor, excerpt, category, status } = await req.json();
-    const news = await Blog.create({
+    const body = await req.json();
+    const {
       title,
       content,
       author,
       tags,
-      publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
-      isNews: true,
-      scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
+      publishedAt,
       excerpt,
       category,
+      status = 'draft',
+      slug,
+      featuredImage,
+      metaTitle,
+      metaDescription,
+      ogTitle,
+      ogDescription,
+      ogImage,
+      twitterTitle,
+      twitterDescription,
+      twitterImage,
+      canonicalUrl,
+    } = body;
+
+    // Validate required fields
+    if (!title || !content || !author) {
+      return NextResponse.json(
+        { success: false, error: 'Title, content, and author are required' },
+        { status: 400 }
+      );
+    }
+
+    // Generate slug from title if not provided
+    const slugToUse = slug || title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/--+/g, '-');
+
+    const news = await Blog.create({
+      title,
+      slug: slugToUse,
+      content,
+      author,
+      tags: Array.isArray(tags) ? tags : (tags || '').split(',').map((t: string) => t.trim()).filter(Boolean),
+      publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
+      isNews: true,
+      excerpt: excerpt || content.substring(0, 160) + (content.length > 160 ? '...' : ''),
+      category,
       status,
+      featuredImage,
+      metaTitle: metaTitle || title,
+      metaDescription: metaDescription || (excerpt || content).substring(0, 160),
+      ogTitle: ogTitle || title,
+      ogDescription: ogDescription || excerpt || content.substring(0, 160),
+      ogImage: ogImage || featuredImage,
+      twitterTitle: twitterTitle || title,
+      twitterDescription: twitterDescription || excerpt || content.substring(0, 160),
+      twitterImage: twitterImage || featuredImage,
+      canonicalUrl,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    return NextResponse.json({ success: true, news });
+    
+    return NextResponse.json({ success: true, news }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    console.error('Error creating news post:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create news post' },
+      { status: 500 }
+    );
   }
 }
 
-// GET /api/news - List all news posts
-export async function GET() {
+// Define the response type for news list
+type NewsListResponse = {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  featuredImage?: string;
+  publishedAt: string;
+  category?: string;
+  status: string;
+  author?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  views?: number;
+};
+
+// GET /api/news - List all news posts with optional filtering
+export async function GET(request: NextRequest) {
   await dbConnect();
   try {
-    const news = await Blog.find({ isNews: true }).sort({ publishedAt: -1 });
-    return NextResponse.json({ success: true, news });
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const category = searchParams.get('category');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = parseInt(searchParams.get('page') || '1');
+    const skip = (page - 1) * limit;
+
+    // Base query to only get news posts
+    const query: any = { isNews: true };
+    
+    // Add status filter if provided
+    if (status) {
+      query.status = status;
+    } else {
+      // Default to only published posts if no status is specified
+      query.status = 'published';
+    }
+    
+    // Add category filter if provided
+    if (category) {
+      query.category = category;
+    }
+
+    // Get total count for pagination
+    const total = await Blog.countDocuments(query);
+    
+    // Get paginated results with selected fields
+    const newsDocs = await Blog.find(query)
+      .sort({ publishedAt: -1, _id: -1 }) // Sort by published date and ID for consistent ordering
+      .skip(skip)
+      .limit(limit)
+      .select('title slug excerpt featuredImage publishedAt category status author metaTitle metaDescription views')
+      .lean()
+      .exec() as any[];
+
+    // Transform the data for the response
+    const data: NewsListResponse[] = newsDocs.map((post: any) => ({
+      ...post,
+      _id: post._id?.toString() || '',
+      publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString(),
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data,
+      pagination: {
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+        limit
+      }
+    });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    console.error('Error fetching news:', error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch news' },
+      { status: 500 }
+    );
   }
 }

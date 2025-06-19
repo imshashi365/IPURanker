@@ -3,121 +3,95 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Calendar } from "lucide-react"
 
-// Sample data - would be fetched from API in a real application
-const allNewsItems = [
-  {
-    id: 1,
-    title: "IPU CET 2024 Registration Opens",
-    category: "Admission",
-    date: "May 5, 2024",
-    excerpt:
-      "The registration process for IPU CET 2024 has begun. Students can apply online through the official website until June 10, 2024.",
-    link: "/news/ipu-cet-2024-registration",
-  },
-  {
-    id: 2,
-    title: "Counseling Schedule for B.Tech Programs Announced",
-    category: "Counseling",
-    date: "May 3, 2024",
-    excerpt:
-      "GGSIPU has released the counseling schedule for B.Tech programs for the academic year 2024-25. The first round will begin on July 15.",
-    link: "/news/btech-counseling-schedule",
-  },
-  {
-    id: 3,
-    title: "Cut-off Marks for 2023 Admissions Released",
-    category: "Cut-offs",
-    date: "April 28, 2024",
-    excerpt:
-      "The university has published the cut-off marks for all programs from the 2023 admission cycle to help students prepare for this year's admissions.",
-    link: "/news/cutoff-marks-2023",
-  },
-  {
-    id: 4,
-    title: "New Courses Added for Academic Year 2024-25",
-    category: "Courses",
-    date: "April 20, 2024",
-    excerpt:
-      "GGSIPU has introduced several new courses including B.Sc. Data Science, B.Des. in UI/UX, and M.Tech in AI & Machine Learning.",
-    link: "/news/new-courses-2024",
-  },
-  {
-    id: 5,
-    title: "IPU CET 2024 Exam Pattern and Syllabus",
-    category: "Admission",
-    date: "April 15, 2024",
-    excerpt:
-      "The university has released the exam pattern and detailed syllabus for IPU CET 2024. Check the official website for program-specific details.",
-    link: "/news/ipu-cet-2024-pattern",
-  },
-  {
-    id: 6,
-    title: "Annual Tech Fest 'Technovation 2024' Announced",
-    category: "Events",
-    date: "April 10, 2024",
-    excerpt:
-      "GGSIPU's annual tech fest 'Technovation 2024' will be held from May 20-22, 2024. Registration for various competitions is now open.",
-    link: "/news/technovation-2024",
-  },
-  {
-    id: 7,
-    title: "Scholarship Programs for Academic Year 2024-25",
-    category: "Admission",
-    date: "April 5, 2024",
-    excerpt:
-      "GGSIPU has announced various scholarship programs for the academic year 2024-25. Eligible students can apply through the university portal.",
-    link: "/news/scholarships-2024",
-  },
-  {
-    id: 8,
-    title: "Second Round of Counseling for MBA Programs",
-    category: "Counseling",
-    date: "April 2, 2024",
-    excerpt:
-      "The second round of counseling for MBA programs will begin on April 10, 2024. Candidates can check their status on the official website.",
-    link: "/news/mba-counseling-round2",
-  },
-  {
-    id: 9,
-    title: "Cut-off Trends for Engineering Programs (2019-2023)",
-    category: "Cut-offs",
-    date: "March 28, 2024",
-    excerpt:
-      "The university has published a comprehensive analysis of cut-off trends for engineering programs over the last five years.",
-    link: "/news/engineering-cutoff-trends",
-  },
-]
+// Types for our news items
+interface NewsItem {
+  _id: string;
+  title: string;
+  category: string;
+  publishedAt: string;
+  excerpt: string;
+  slug: string;
+  status: string;
+}
 
-export default function NewsGrid({ category = "all" }: { category?: string }) {
-  // Filter news items based on category
-  const newsItems =
-    category === "all"
-      ? allNewsItems
-      : allNewsItems.filter((item) => item.category.toLowerCase() === category.toLowerCase())
+// Fetch news items from the API
+async function fetchNews(category: string = 'all') {
+  try {
+    // Use the full URL for server-side requests
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const url = new URL(`/api/news`, baseUrl);
+    url.searchParams.append('status', 'published');
+    if (category !== 'all') {
+      url.searchParams.append('category', category);
+    }
+    url.searchParams.append('limit', '100');
+    
+    const res = await fetch(url.toString(), {
+      next: { revalidate: 60 } // Revalidate every 60 seconds
+    });
+    
+    if (!res.ok) {
+      throw new Error('Failed to fetch news');
+    }
+    
+    const data = await res.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to load news');
+    }
+    
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching news:', error);
+    return [];
+  }
+}
+
+export default async function NewsGrid({ category = "all" }: { category?: string }) {
+  // Fetch news items from the API
+  const newsItems = await fetchNews(category);
+  
+  // Debug: Log the first news item to check its structure
+  if (newsItems.length > 0) {
+    console.log('First news item:', JSON.stringify(newsItems[0], null, 2));
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {newsItems.length > 0 ? (
-        newsItems.map((item) => (
-          <Card key={item.id}>
+        newsItems.map((item: NewsItem) => (
+          <Card key={item._id}>
             <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-xl">{item.title}</CardTitle>
-                <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-100">
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <CardTitle className="text-lg hover:underline">
+                    <Link href={`/news/${item.slug || item._id}`}>{item.title}</Link>
+                  </CardTitle>
+                  <CardDescription className="mt-1 flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {new Date(item.publishedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="whitespace-nowrap">
                   {item.category}
                 </Badge>
               </div>
-              <CardDescription className="flex items-center mt-2">
-                <Calendar className="h-4 w-4 mr-1" />
-                {item.date}
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p>{item.excerpt}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
+                {item.excerpt}
+              </p>
             </CardContent>
             <CardFooter>
-              <Link href={item.link} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                Read more →
+              <Link
+                href={`/news/${item.slug || item._id}`}
+                className="text-sm font-medium text-primary hover:underline flex items-center"
+              >
+                Read more
               </Link>
             </CardFooter>
           </Card>

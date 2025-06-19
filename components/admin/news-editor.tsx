@@ -26,12 +26,24 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, MoreHorizontal, Plus } from "lucide-react"
+import { Calendar, MoreHorizontal, Plus, Eye, Pencil, Trash2 } from "lucide-react"
+import { format } from 'date-fns';
+import { toast } from "@/components/ui/use-toast";
 
+// Define the NewsItem type
+type NewsItem = {
+  _id: string;
+  title: string;
+  featuredImage: string | null;
+  status: string;
+  publishedAt: Date;
+  views: number | null;
+  slug: string | null;
+}
 
 // Fetch news from the API
 function useNews() {
-  const [news, setNews] = useState<any[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,26 +51,66 @@ function useNews() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/news");
+      const res = await fetch("/api/news?limit=100&status=all"); // Get all statuses for admin
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Failed to fetch news");
-      setNews(data.news);
+      setNews(data.data || []);
     } catch (e: any) {
-      setError(e.message || "Unknown error");
+      console.error("Error fetching news:", e);
+      setError(e.message || "Failed to load news. Please try again later.");
       setNews([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const deleteNews = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this news post? This action cannot be undone.')) return false;
+    
+    try {
+      const res = await fetch(`/api/news/${id}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete news post');
+      }
+      
+      toast.success('News post deleted successfully');
+      await fetchNews();
+      return true;
+    } catch (error) {
+      console.error('Error deleting news post:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete news post');
+      return false;
+    }
+  };
+
   useEffect(() => { fetchNews(); }, []);
 
-  return { news, loading, error, refresh: fetchNews };
+  return { news, loading, error, refresh: fetchNews, deleteNews };
 }
 
 export default function NewsEditor() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { news, loading, error, refresh } = useNews();
+  const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
+  const { news, loading, error, refresh, deleteNews } = useNews();
+  
+  const handleEdit = (newsItem: NewsItem) => {
+    setEditingNews(newsItem);
+  };
+  
+  const handleDelete = async (id: string) => {
+    await deleteNews(id);
+  };
+  
+  const handleModalClose = () => {
+    setEditingNews(null);
+    setIsAddDialogOpen(false);
+    refresh();
+  };
 
   return (
     <div className="space-y-4">
@@ -71,15 +123,51 @@ export default function NewsEditor() {
               Add News
             </Button>
           </DialogTrigger>
-          <NewsModal open={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)} onCreated={refresh} />
+          <NewsModal 
+            open={isAddDialogOpen || !!editingNews} 
+            onClose={handleModalClose}
+            onCreated={refresh}
+            initialData={editingNews}
+          />
         </Dialog>
       </div>
 
       <div className="rounded-md border">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">Loading news...</div>
+          <div className="p-8 text-center text-muted-foreground">
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p>Loading news...</p>
+            </div>
+          </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-500">{error}</div>
+          <div className="p-8 text-center">
+            <div className="rounded-md bg-destructive/10 p-4 text-destructive">
+              <p className="font-medium">Error loading news</p>
+              <p className="text-sm">{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                onClick={() => refresh()}
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : !news || news.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            <p>No news articles found.</p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add your first article
+            </Button>
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -92,49 +180,82 @@ export default function NewsEditor() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {news.map((item) => (
-                <TableRow key={item._id}>
-                  <TableCell className="font-medium">{item.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-600">
-                      {item.category || "-"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : "-"}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        item.status === "published"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }
-                    >
-                      {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : "-"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        {item.status === "draft" ? (
-                          <DropdownMenuItem>Publish</DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem>Unpublish</DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {news.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No news posts found. Create your first post!
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                news.map((item) => (
+                  <TableRow key={item._id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {item.featuredImage && (
+                          <img 
+                            src={item.featuredImage} 
+                            alt={item.title}
+                            className="h-10 w-10 rounded-md object-cover"
+                          />
+                        )}
+                        <span className="line-clamp-1">{item.title}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={
+                          item.status === 'published' ? 'default' : 
+                          item.status === 'draft' ? 'outline' : 'secondary'
+                        }
+                      >
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                        {format(new Date(item.publishedAt), 'MMM d, yyyy')}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground">
+                        {item.views?.toLocaleString() || 0}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => window.open(`/news/${item.slug || item._id}`, '_blank')}
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(item)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(item._id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         )}
