@@ -1,21 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Blog from '@/models/Blog';
 import mongoose from 'mongoose';
+
+type RouteParams = {
+  params: {
+    id: string;
+  };
+};
 
 // Helper function to find a blog post by ID or slug
 async function findBlogByIdOrSlug(id: string) {
   let blog = null;
   
-  // Check if the param is a valid ObjectId
+  // First try to find by ID
   if (mongoose.Types.ObjectId.isValid(id)) {
-    // Try to find by ID first if it's a valid ObjectId
-    blog = await Blog.findOne({ _id: new mongoose.Types.ObjectId(id), isNews: true });
+    blog = await Blog.findById(id);
   }
   
-  // If not found by ID, try by slug
+  // If not found by ID, try to find by slug
   if (!blog) {
-    blog = await Blog.findOne({ slug: id, isNews: true });
+    blog = await Blog.findOne({ slug: id });
   }
   
   return blog;
@@ -24,8 +30,8 @@ async function findBlogByIdOrSlug(id: string) {
 // GET /api/blog/[id] - Get a single blog post
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = params;
   await dbConnect();
   try {
@@ -56,8 +62,8 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = params;
   await dbConnect();
   try {
@@ -147,8 +153,8 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+  { params }: RouteParams
+): Promise<NextResponse> {
   const { id } = params;
   await dbConnect();
   try {
