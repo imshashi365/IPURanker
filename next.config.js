@@ -7,7 +7,6 @@ const nextConfig = {
   },
   // Environment variables configuration
   env: {
-    NODE_ENV: process.env.NODE_ENV,
     MONGODB_URI: process.env.MONGODB_URI,
     // Add other environment variables here
   },
