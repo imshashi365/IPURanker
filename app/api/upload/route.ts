@@ -3,10 +3,10 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import mime from 'mime-types';
-import { dbConnect } from '@/lib/mongodb';
+import connect from '@/lib/mongodb';
 
 export async function POST(request: Request) {
-  await dbConnect();
+  await connect();
   
   try {
     const formData = await request.formData();
