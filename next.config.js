@@ -1,9 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Enable server-side rendering and API routes in development
+  experimental: {
+    serverActions: true,
+  },
+  // Environment variables configuration
+  env: {
+    NODE_ENV: process.env.NODE_ENV,
+    MONGODB_URI: process.env.MONGODB_URI,
+    // Add other environment variables here
+  },
+  // Image optimization
   images: {
     domains: [
-      'localhost', 
+      'localhost',
+      'vercel.app',
       'ipuraner.com',
       'img.collegepravesh.com',
       'collegepravesh.com',
@@ -11,8 +23,14 @@ const nextConfig = {
       'www.msit.ac.in',
       'bpitindia.ac.in',
       'msit.in',
-      'www.msit.in'
-    ]
+      'www.msit.in',
+      'images.unsplash.com',
+      'res.cloudinary.com',
+      'lh3.googleusercontent.com',
+      'via.placeholder.com'
+    ],
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
   },
   async rewrites() {
     return [

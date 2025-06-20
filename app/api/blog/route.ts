@@ -9,8 +9,10 @@ type BlogDocument = IBlog & {
 
 // POST /api/blog - Create a new blog post
 export async function POST(req: NextRequest) {
-  await dbConnect();
+  console.log('Received POST request to /api/blog');
   try {
+    await dbConnect();
+    console.log('Database connected, processing request...');
     const body = await req.json();
     const {
       title,
@@ -74,11 +76,25 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date(),
     });
     
-    return NextResponse.json({ success: true, data: blog }, { status: 201 });
-  } catch (error) {
-    console.error('Error creating blog post:', error);
+    console.log('Blog post created successfully:', { id: blog._id, title: blog.title });
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to create blog post' },
+      { success: true, data: blog },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Error in POST /api/blog:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      timestamp: new Date().toISOString()
+    });
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to create blog post',
+        details: process.env.NODE_ENV === 'development' 
+          ? error instanceof Error ? error.message : 'Unknown error'
+          : undefined
+      },
       { status: 500 }
     );
   }
