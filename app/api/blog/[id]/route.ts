@@ -1,7 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Blog from '@/models/Blog';
 import mongoose from 'mongoose';
+
+type Params = {
+  id: string;
+};
 
 // Helper function to find a blog post by ID or slug
 async function findBlogByIdOrSlug(id: string) {
@@ -24,9 +29,9 @@ async function findBlogByIdOrSlug(id: string) {
 // GET /api/blog/[id] - Get a single blog post
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Params }
 ) {
-  const { id } = params;
+  const { id } = context.params;
   await dbConnect();
   try {
     const blog = await findBlogByIdOrSlug(id);
@@ -56,9 +61,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Params }
 ) {
-  const { id } = params;
+  const { id } = context.params;
   await dbConnect();
   try {
     const body = await request.json();
@@ -147,9 +152,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Params }
 ) {
-  const { id } = params;
+  const { id } = context.params;
   await dbConnect();
   try {
     // Find the post first to get its ID
