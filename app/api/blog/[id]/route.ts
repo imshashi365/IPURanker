@@ -24,11 +24,12 @@ async function findBlogByIdOrSlug(id: string) {
 // GET /api/blog/[id] - Get a single blog post
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   await dbConnect();
   try {
-    const blog = await findBlogByIdOrSlug(params.id);
+    const blog = await findBlogByIdOrSlug(id);
     
     if (!blog) {
       return NextResponse.json(
@@ -55,8 +56,9 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   await dbConnect();
   try {
     const body = await request.json();
@@ -121,7 +123,7 @@ export async function PUT(
     };
 
     const blog = await Blog.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: updateData },
       { new: true, runValidators: true }
     );
@@ -145,12 +147,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
   await dbConnect();
   try {
     // Find the post first to get its ID
-    const post = await findBlogByIdOrSlug(params.id);
+    const post = await findBlogByIdOrSlug(id);
     if (!post) {
       return NextResponse.json(
         { success: false, error: 'Blog post not found' },
