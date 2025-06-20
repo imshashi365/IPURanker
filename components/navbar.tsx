@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Placements", href: "/placements" },
-  { name: "News & Updates", href: "/news" },
+  { name: "Blog", href: "/blog" },
   { name: "Colleges", href: "/colleges" },
 ]
 

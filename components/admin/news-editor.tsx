@@ -28,21 +28,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Calendar, MoreHorizontal, Plus, Eye, Pencil, Trash2 } from "lucide-react"
 import { format } from 'date-fns';
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 // Define the NewsItem type
 type NewsItem = {
   _id: string;
   title: string;
-  featuredImage: string | null;
+  featuredImage?: string;
   status: string;
-  publishedAt: Date;
-  views: number | null;
-  slug: string | null;
+  publishedAt: string | Date;
+  views?: number;
+  slug?: string;
+  category?: string;
+  excerpt?: string;
+  content?: string;
+  tags?: string[] | string;
+  author?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  isNews?: boolean;
 }
 
 // Fetch news from the API
 function useNews() {
+  const { toast } = useToast();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,13 +60,13 @@ function useNews() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/news?limit=100&status=all"); // Get all statuses for admin
+      const res = await fetch("/api/blog?limit=100&status=all"); // Get all statuses for admin
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Failed to fetch news");
+      if (!data.success) throw new Error(data.error || "Failed to fetch blog posts");
       setNews(data.data || []);
     } catch (e: any) {
-      console.error("Error fetching news:", e);
-      setError(e.message || "Failed to load news. Please try again later.");
+      console.error("Error fetching blog posts:", e);
+      setError(e.message || "Failed to load blog posts. Please try again later.");
       setNews([]);
     } finally {
       setLoading(false);
@@ -65,25 +74,33 @@ function useNews() {
   };
 
   const deleteNews = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this news post? This action cannot be undone.')) return false;
+    if (!confirm('Are you sure you want to delete this blog post? This action cannot be undone.')) return false;
     
     try {
-      const res = await fetch(`/api/news/${id}`, {
+      const res = await fetch(`/api/blog/${id}`, {
         method: 'DELETE',
       });
       
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete news post');
+        throw new Error(data.error || 'Failed to delete blog post');
       }
       
-      toast.success('News post deleted successfully');
+      toast({
+        title: "Success",
+        description: 'Blog post deleted successfully',
+        variant: "default",
+      });
       await fetchNews();
       return true;
     } catch (error) {
-      console.error('Error deleting news post:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete news post');
+      console.error('Error deleting blog post:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to delete blog post',
+        variant: "destructive",
+      });
       return false;
     }
   };
@@ -126,8 +143,11 @@ export default function NewsEditor() {
           <NewsModal 
             open={isAddDialogOpen || !!editingNews} 
             onClose={handleModalClose}
-            onCreated={refresh}
-            initialData={editingNews}
+            onCreated={() => {
+              refresh();
+              setEditingNews(null);
+            }}
+            initialData={editingNews || undefined}
           />
         </Dialog>
       </div>

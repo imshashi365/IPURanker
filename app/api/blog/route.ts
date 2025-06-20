@@ -7,7 +7,7 @@ type BlogDocument = IBlog & {
   __v?: number;
 };
 
-// POST /api/news - Create a new news post
+// POST /api/blog - Create a new blog post
 export async function POST(req: NextRequest) {
   await dbConnect();
   try {
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       .replace(/\s+/g, '-')
       .replace(/--+/g, '-');
 
-    const news = await Blog.create({
+    const blog = await Blog.create({
       title,
       slug: slugToUse,
       content,
@@ -74,18 +74,18 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date(),
     });
     
-    return NextResponse.json({ success: true, news }, { status: 201 });
+    return NextResponse.json({ success: true, data: blog }, { status: 201 });
   } catch (error) {
-    console.error('Error creating news post:', error);
+    console.error('Error creating blog post:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to create news post' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create blog post' },
       { status: 500 }
     );
   }
 }
 
-// Define the response type for news list
-type NewsListResponse = {
+// Define the response type for blog list
+type BlogListResponse = {
   _id: string;
   title: string;
   slug: string;
@@ -100,7 +100,7 @@ type NewsListResponse = {
   views?: number;
 };
 
-// GET /api/news - List all news posts with optional filtering
+// GET /api/blog - List all blog posts with optional filtering
 export async function GET(request: NextRequest) {
   await dbConnect();
   try {
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
 
-    // Base query to only get news posts
+    // Base query to only get blog posts
     const query: any = { isNews: true };
     
     // Add status filter if provided
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     const total = await Blog.countDocuments(query);
     
     // Get paginated results with selected fields
-    const newsDocs = await Blog.find(query)
+    const blogDocs = await Blog.find(query)
       .sort({ publishedAt: -1, _id: -1 }) // Sort by published date and ID for consistent ordering
       .skip(skip)
       .limit(limit)
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
       .exec() as any[];
 
     // Transform the data for the response
-    const data: NewsListResponse[] = newsDocs.map((post: any) => ({
+    const data: BlogListResponse[] = blogDocs.map((post: any) => ({
       ...post,
       _id: post._id?.toString() || '',
       publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString(),
@@ -157,9 +157,9 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching news:', error);
+    console.error('Error fetching blog posts:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch news' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch blog posts' },
       { status: 500 }
     );
   }

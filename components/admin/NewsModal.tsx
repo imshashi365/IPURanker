@@ -1,5 +1,6 @@
 "use client";
-import { useState, useRef, ChangeEvent } from "react";
+
+import React, { useState, useRef, useEffect, ChangeEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,89 +9,138 @@ import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Image as ImageIcon, X, Upload } from "lucide-react";
 import { uploadFile, validateFileSize, isImageFile } from "@/lib/upload";
+import { generateSlug } from "@/lib/text-utils";
 
-type NewsModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onCreated?: () => void;
-  initialData?: {
-    _id?: string;
-    title?: string;
-    slug?: string;
-    category?: string;
-    publishedAt?: string;
-    excerpt?: string;
-    content?: string;
-    status?: string;
-    tags?: string[];
-    author?: string;
-    featuredImage?: string;
-    metaTitle?: string;
-    metaDescription?: string;
-  };
+// Define the NewsItem type to match the Blog model
+type NewsItem = {
+  _id?: string;
+  title: string;
+  slug?: string;
+  category?: string;
+  publishedAt?: string | Date;
+  excerpt?: string;
+  content?: string;
+  status?: string;
+  tags?: string[] | string;
+  author?: string;
+  featuredImage?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  isNews?: boolean;
 };
 
-export default function NewsModal({ open, onClose, onCreated, initialData }: NewsModalProps) {
-  type FormData = {
-    title: string;
-    slug: string;
-    category: string;
-    publishedAt: string;
-    excerpt: string;
-    content: string;
-    status: string;
-    tags: string;
-    author: string;
-    featuredImage: string;
-    metaTitle: string;
-    metaDescription: string;
-    isNews: boolean;
-  };
+type FormData = {
+  title: string;
+  slug: string;
+  category: string;
+  publishedAt: string;
+  excerpt: string;
+  content: string;
+  status: string;
+  tags: string;
+  author: string;
+  featuredImage: string;
+  metaTitle: string;
+  metaDescription: string;
+  isNews: boolean;
+};
 
-  const [formData, setFormData] = useState<FormData>({
-    title: initialData?.title || "",
-    slug: initialData?.slug || "",
-    category: initialData?.category || "",
-    publishedAt: initialData?.publishedAt || new Date().toISOString().split('T')[0],
-    excerpt: initialData?.excerpt || "",
-    content: initialData?.content || "",
-    status: initialData?.status || "draft",
-    tags: initialData?.tags?.join(", ") || "",
-    author: initialData?.author || "",
-    featuredImage: initialData?.featuredImage || "",
-    metaTitle: initialData?.metaTitle || "",
-    metaDescription: initialData?.metaDescription || "",
-    isNews: true, // Ensure this is set by default for new posts
-  });
-  
+export default function NewsModal({ 
+  open, 
+  onClose, 
+  onCreated, 
+  initialData 
+}: { 
+  open: boolean; 
+  onClose: () => void; 
+  onCreated?: () => void; 
+  initialData?: NewsItem;
+}): React.JSX.Element {
+  // State for UI elements
   const [featuredImagePreview, setFeaturedImagePreview] = useState(initialData?.featuredImage || "");
   const [isUploading, setIsUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
   const isEditMode = !!initialData?._id;
+
+  // Initialize form data with default values
+  const [formData, setFormData] = useState<FormData>({
+    title: "",
+    slug: "",
+    category: "",
+    publishedAt: new Date().toISOString().split('T')[0],
+    excerpt: "",
+    content: "",
+    status: "draft",
+    tags: "",
+    author: "",
+    featuredImage: "",
+    metaTitle: "",
+    metaDescription: "",
+    isNews: true
+  });
+
+  // Update form data when initialData changes or when the modal is opened
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        // Edit mode - populate with existing data
+        setFormData({
+          title: initialData.title || '',
+          slug: initialData.slug || '',
+          category: initialData.category || '',
+          publishedAt: initialData.publishedAt 
+            ? new Date(initialData.publishedAt).toISOString().slice(0, 16) 
+            : new Date().toISOString().slice(0, 16),
+          excerpt: initialData.excerpt || '',
+          content: initialData.content || '',
+          status: initialData.status || 'draft',
+          tags: Array.isArray(initialData.tags) 
+            ? initialData.tags.join(', ') 
+            : initialData.tags || '',
+          author: initialData.author || '',
+          featuredImage: initialData.featuredImage || '',
+          metaTitle: initialData.metaTitle || initialData.title || '',
+          metaDescription: initialData.metaDescription || initialData.excerpt || '',
+          isNews: true
+        });
+        setFeaturedImagePreview(initialData.featuredImage || '');
+      } else {
+        // New post - set defaults
+        const defaultTitle = '';
+        const defaultSlug = defaultTitle
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/--+/g, '');
+          
+        setFormData({
+          title: defaultTitle,
+          slug: defaultSlug,
+          category: '',
+          publishedAt: new Date().toISOString().slice(0, 16),
+          excerpt: '',
+          content: '',
+          status: 'draft',
+          tags: '',
+          author: '',
+          featuredImage: '',
+          metaTitle: '',
+          metaDescription: '',
+          isNews: true
+        });
+        setFeaturedImagePreview('');
+      }
+    }
+  }, [initialData, open]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value,
-      isNews: true // Ensure isNews is preserved in all updates
+      [name]: value
     }));
-    
-    // Auto-generate slug from title
-    if (name === 'title' && !isEditMode) {
-      const slug = value
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '') // remove non-word chars
-        .replace(/\s+/g, '-')      // replace spaces with -
-        .replace(/--+/g, '-');      // replace multiple - with single -
-      setFormData(prev => ({
-        ...prev,
-        slug: slug
-      }));
-    }
   };
   
   const handleContentChange = (content: string) => {
@@ -145,18 +195,36 @@ export default function NewsModal({ open, onClose, onCreated, initialData }: New
     setFeaturedImagePreview("");
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    // Ensure we have a valid slug
+    if (!formData.slug) {
+      const generatedSlug = formData.title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/--+/g, '');
+      
+      setFormData(prev => ({
+        ...prev,
+        slug: generatedSlug
+      }));
+    }
+
     try {
       const method = isEditMode ? 'PUT' : 'POST';
-      const url = isEditMode && initialData?._id ? `/api/news/${initialData._id}` : '/api/news';
+      const url = isEditMode && initialData?._id ? `/api/blog/${initialData._id}` : '/api/blog';
 
+      // Generate slug from title if not provided
+      const slug = formData.slug || generateSlug(formData.title);
+      
       const payload = {
         ...formData,
-        isNews: true, // Ensure this is always true for news posts
+        slug,
+        isNews: true, // Ensure this is always true for blog posts
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
       };
 
@@ -171,7 +239,7 @@ export default function NewsModal({ open, onClose, onCreated, initialData }: New
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to save news post');
+        throw new Error(data.error || 'Failed to save blog post');
       }
       
       // Reset form
@@ -200,7 +268,7 @@ export default function NewsModal({ open, onClose, onCreated, initialData }: New
       if (onCreated) onCreated();
       onClose();
     } catch (err: any) {
-      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} news post`);
+      setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} blog post`);
       console.error('Error submitting form:', err);
     } finally {
       setLoading(false);
@@ -211,15 +279,21 @@ export default function NewsModal({ open, onClose, onCreated, initialData }: New
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit News Post' : 'New News Post'}</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Blog Post' : 'New Blog Post'}</DialogTitle>
           <DialogDescription>
             {isEditMode 
-              ? 'Update the news post details below.' 
-              : 'Fill in the details below to create a new news post.'}
+              ? 'Update the blog post details below.' 
+              : 'Fill in the details below to create a new blog post.'}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="p-4 bg-red-50 text-red-700 rounded-md">
+              <p>{error}</p>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
               {/* Title */}

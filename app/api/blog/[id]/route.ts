@@ -1,40 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Blog from '@/models/Blog';
+import mongoose from 'mongoose';
 
-// GET /api/news/[id] - Get a single news post
+// Helper function to find a blog post by ID or slug
+async function findBlogByIdOrSlug(id: string) {
+  let blog = null;
+  
+  // Check if the param is a valid ObjectId
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    // Try to find by ID first if it's a valid ObjectId
+    blog = await Blog.findOne({ _id: new mongoose.Types.ObjectId(id), isNews: true });
+  }
+  
+  // If not found by ID, try by slug
+  if (!blog) {
+    blog = await Blog.findOne({ slug: id, isNews: true });
+  }
+  
+  return blog;
+}
+
+// GET /api/blog/[id] - Get a single blog post
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   await dbConnect();
   try {
-    // Try to find by ID first
-    let news = await Blog.findOne({ _id: params.id, isNews: true });
+    const blog = await findBlogByIdOrSlug(params.id);
     
-    // If not found by ID, try by slug
-    if (!news) {
-      news = await Blog.findOne({ slug: params.id, isNews: true });
-    }
-    
-    if (!news) {
+    if (!blog) {
       return NextResponse.json(
-        { success: false, error: 'News post not found' },
+        { success: false, error: 'Blog post not found' },
         { status: 404 }
       );
     }
     
     // Increment view count
-    news.views = (news.views || 0) + 1;
-    await news.save();
+    blog.views = (blog.views || 0) + 1;
+    await blog.save();
     
     return NextResponse.json({ 
       success: true, 
-      data: news.toObject({ getters: true }) 
+      data: blog.toObject({ getters: true }) 
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch news post' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch blog post' },
       { status: 500 }
     );
   }
@@ -107,24 +120,24 @@ export async function PUT(
       updatedAt: new Date(),
     };
 
-    const news = await Blog.findByIdAndUpdate(
+    const blog = await Blog.findByIdAndUpdate(
       params.id,
       { $set: updateData },
       { new: true, runValidators: true }
     );
 
-    if (!news) {
+    if (!blog) {
       return NextResponse.json(
-        { success: false, error: 'News post not found' },
+        { success: false, error: 'Blog post not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, news });
+    return NextResponse.json({ success: true, data: blog });
   } catch (error) {
-    console.error('Error updating news post:', error);
+    console.error('Error updating blog post:', error);
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to update news post' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update blog post' },
       { status: 500 }
     );
   }
@@ -136,17 +149,28 @@ export async function DELETE(
 ) {
   await dbConnect();
   try {
-    const deletedNews = await Blog.findByIdAndDelete(params.id);
-    if (!deletedNews) {
+    // Find the post first to get its ID
+    const post = await findBlogByIdOrSlug(params.id);
+    if (!post) {
       return NextResponse.json(
-        { success: false, error: 'News post not found' },
+        { success: false, error: 'Blog post not found' },
         { status: 404 }
       );
     }
-    return NextResponse.json({ success: true, news: deletedNews });
+    
+    // Delete using the found post's ID
+    const deletedPost = await Blog.findByIdAndDelete(post._id);
+    if (!deletedPost) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete blog post' },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json({ success: true, data: {} });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to delete news post' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to delete blog post' },
       { status: 500 }
     );
   }
