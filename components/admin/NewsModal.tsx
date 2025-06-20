@@ -81,30 +81,58 @@ export default function NewsModal({
     isNews: true
   });
 
+  // Format date for datetime-local input
+  const formatDateForInput = (date: string | Date) => {
+    try {
+      const d = new Date(date);
+      // Handle invalid dates
+      if (isNaN(d.getTime())) return new Date().toISOString().slice(0, 16);
+      // Format as YYYY-MM-DDTHH:MM (local time)
+      const pad = (n: number) => n < 10 ? '0' + n : n;
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch (e) {
+      return new Date().toISOString().slice(0, 16);
+    }
+  };
+
+  // Reset form when modal is closed
+  useEffect(() => {
+    if (!open) {
+      // Small delay to allow modal close animation
+      const timer = setTimeout(() => {
+        setError(null);
+        setFeaturedImagePreview('');
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
   // Update form data when initialData changes or when the modal is opened
   useEffect(() => {
     if (open) {
-      if (initialData) {
+      if (initialData && Object.keys(initialData).length > 0) {
         // Edit mode - populate with existing data
-        setFormData({
+        const formattedData = {
           title: initialData.title || '',
           slug: initialData.slug || '',
           category: initialData.category || '',
-          publishedAt: initialData.publishedAt 
-            ? new Date(initialData.publishedAt).toISOString().slice(0, 16) 
-            : new Date().toISOString().slice(0, 16),
+          publishedAt: formatDateForInput(initialData.publishedAt || new Date()),
           excerpt: initialData.excerpt || '',
           content: initialData.content || '',
           status: initialData.status || 'draft',
           tags: Array.isArray(initialData.tags) 
-            ? initialData.tags.join(', ') 
-            : initialData.tags || '',
+            ? initialData.tags.join(', ')
+            : typeof initialData.tags === 'string' 
+              ? initialData.tags
+              : '',
           author: initialData.author || '',
           featuredImage: initialData.featuredImage || '',
           metaTitle: initialData.metaTitle || initialData.title || '',
           metaDescription: initialData.metaDescription || initialData.excerpt || '',
           isNews: true
-        });
+        };
+        
+        setFormData(formattedData);
         setFeaturedImagePreview(initialData.featuredImage || '');
       } else {
         // New post - set defaults
@@ -113,9 +141,9 @@ export default function NewsModal({
           .toLowerCase()
           .replace(/[^\w\s-]/g, '')
           .replace(/\s+/g, '-')
-          .replace(/--+/g, '');
+          .replace(/--+/g, '-');
           
-        setFormData({
+        const defaultFormData = {
           title: defaultTitle,
           slug: defaultSlug,
           category: '',
@@ -126,10 +154,12 @@ export default function NewsModal({
           tags: '',
           author: '',
           featuredImage: '',
-          metaTitle: '',
+          metaTitle: defaultTitle,
           metaDescription: '',
           isNews: true
-        });
+        };
+        
+        setFormData(defaultFormData);
         setFeaturedImagePreview('');
       }
     }
@@ -137,10 +167,35 @@ export default function NewsModal({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Auto-generate slug when title changes and it's a new post
+    if (name === 'title' && !initialData?._id) {
+      const slug = value
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/--+/g, '-');
+      
+      setFormData(prev => ({
+        ...prev,
+        title: value,
+        slug: slug || prev.slug, // Keep existing slug if title is empty
+        metaTitle: prev.metaTitle || value, // Auto-fill meta title if empty
+        metaDescription: prev.metaDescription || prev.excerpt || ''
+      }));
+    } else if (name === 'excerpt' && !formData.metaDescription) {
+      // Auto-fill meta description from excerpt if empty
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        metaDescription: value.substring(0, 160) // Limit to 160 chars
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
   
   const handleContentChange = (content: string) => {
@@ -200,17 +255,32 @@ export default function NewsModal({
     setLoading(true);
     setError(null);
 
+    // Basic validation
+    if (!formData.title.trim()) {
+      setError('Title is required');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      setError('Content is required');
+      setLoading(false);
+      return;
+    }
+
     // Ensure we have a valid slug
-    if (!formData.slug) {
-      const generatedSlug = formData.title
+    let slug = formData.slug;
+    if (!slug) {
+      slug = formData.title
         .toLowerCase()
         .replace(/[^\w\s-]/g, '')
         .replace(/\s+/g, '-')
-        .replace(/--+/g, '');
+        .replace(/--+/g, '-');
       
+      // Update form data with generated slug
       setFormData(prev => ({
         ...prev,
-        slug: generatedSlug
+        slug
       }));
     }
 

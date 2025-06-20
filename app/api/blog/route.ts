@@ -115,12 +115,13 @@ export async function GET(request: NextRequest) {
     const query: any = { isNews: true };
     
     // Add status filter if provided
-    if (status) {
+    if (status && status !== 'all') {
       query.status = status;
-    } else {
+    } else if (!status) {
       // Default to only published posts if no status is specified
       query.status = 'published';
     }
+    // If status is 'all', do not add any status filter, thus fetching all.
     
     // Add category filter if provided
     if (category) {

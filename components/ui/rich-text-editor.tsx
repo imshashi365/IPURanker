@@ -78,11 +78,29 @@ export function RichTextEditor({
           class: 'rounded-lg border mx-auto my-4',
         },
       }),
-      Link.configure({
+      Link.extend({
+        inclusive: false,
+        addKeyboardShortcuts() {
+          return {
+            'Enter': ({ editor }) => {
+              // If we're at the end of a link, move the cursor outside
+              if (editor.isActive('link')) {
+                editor.commands.exitCode();
+                editor.commands.enter();
+                return true;
+              }
+              return false;
+            },
+          };
+        },
+      }).configure({
         openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
         HTMLAttributes: {
           class: 'text-blue-600 underline hover:text-blue-800',
         },
+        validate: (url: string) => /^https?:\/\//.test(url),
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph', 'image'],
@@ -142,7 +160,7 @@ export function RichTextEditor({
 
   const setLink = () => {
     const previousUrl = editor?.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl);
+    const url = window.prompt('URL', previousUrl || 'https://');
 
     // cancelled
     if (url === null) {
@@ -155,8 +173,18 @@ export function RichTextEditor({
       return;
     }
 
+    // Ensure URL has protocol
+    let formattedUrl = url;
+    if (!/^https?:\/\//.test(url)) {
+      formattedUrl = `https://${url}`;
+    }
+
     // update link
-    editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    editor?.chain()
+      .focus()
+      .extendMarkRange('link')
+      .setLink({ href: formattedUrl })
+      .run();
   };
 
   const addTable = () => {
@@ -167,8 +195,19 @@ export function RichTextEditor({
     return null;
   }
 
+  // Handle keyboard events
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle Enter key when in a link
+    if (e.key === 'Enter' && editor?.isActive('link')) {
+      editor.commands.exitCode();
+      editor.commands.enter();
+      e.preventDefault();
+      return;
+    }
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" onKeyDown={handleKeyDown}>
       {editable && (
         <div className="flex flex-wrap gap-1 p-1 border rounded-t-lg bg-gray-50">
           {/* Text Formatting */}

@@ -60,9 +60,9 @@ function useNews() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/blog?limit=100&status=all"); // Get all statuses for admin
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Failed to fetch blog posts");
+      const response = await fetch('/api/blog?limit=100&status=all'); // Get all statuses for admin
+      const data = await response.json();
+      if (!data.success) throw new Error('Failed to fetch blogs');
       setNews(data.data || []);
     } catch (e: any) {
       console.error("Error fetching blog posts:", e);
@@ -105,18 +105,79 @@ function useNews() {
     }
   };
 
+  // Function to fetch a single blog post with all fields
+  const fetchBlogPost = async (id: string): Promise<NewsItem | null> => {
+    try {
+      const response = await fetch(`/api/blog/${id}`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to fetch blog post');
+      return data.data;
+    } catch (e: any) {
+      console.error("Error fetching blog post:", e);
+      toast({
+        title: "Error",
+        description: e.message || 'Failed to load blog post',
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   useEffect(() => { fetchNews(); }, []);
 
-  return { news, loading, error, refresh: fetchNews, deleteNews };
+  return { 
+    news, 
+    loading, 
+    error, 
+    refresh: fetchNews, 
+    deleteNews, 
+    fetchBlogPost 
+  };
 }
 
 export default function NewsEditor() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
-  const { news, loading, error, refresh, deleteNews } = useNews();
+  const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
+  const { news, loading, error, refresh, deleteNews, fetchBlogPost } = useNews();
+  const { toast } = useToast();
   
-  const handleEdit = (newsItem: NewsItem) => {
-    setEditingNews(newsItem);
+  const handleEdit = async (newsItem: NewsItem) => {
+    if (!newsItem._id) {
+      toast({
+        title: "Error",
+        description: "Invalid blog post ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Set loading state for this specific post
+    setIsLoading(prev => ({ ...prev, [newsItem._id]: true }));
+    
+    try {
+      // Fetch the complete blog post data
+      const fullBlogPost = await fetchBlogPost(newsItem._id);
+      if (fullBlogPost) {
+        // Small delay to ensure smooth transition
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setEditingNews(fullBlogPost);
+      }
+    } catch (error) {
+      console.error("Error loading blog post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load blog post data",
+        variant: "destructive",
+      });
+    } finally {
+      // Clear loading state
+      setIsLoading(prev => {
+        const newState = { ...prev };
+        delete newState[newsItem._id];
+        return newState;
+      });
+    }
   };
   
   const handleDelete = async (id: string) => {
@@ -124,9 +185,14 @@ export default function NewsEditor() {
   };
   
   const handleModalClose = () => {
-    setEditingNews(null);
+    // Close the modal first
     setIsAddDialogOpen(false);
-    refresh();
+    
+    // Then reset the editing state after a short delay
+    setTimeout(() => {
+      setEditingNews(null);
+      refresh();
+    }, 300); // Match this with your modal's close animation duration
   };
 
   return (
@@ -140,15 +206,26 @@ export default function NewsEditor() {
               Add News
             </Button>
           </DialogTrigger>
-          <NewsModal 
-            open={isAddDialogOpen || !!editingNews} 
-            onClose={handleModalClose}
-            onCreated={() => {
-              refresh();
-              setEditingNews(null);
-            }}
-            initialData={editingNews || undefined}
-          />
+<>
+            <NewsModal 
+              open={isAddDialogOpen || !!editingNews} 
+              onClose={handleModalClose}
+              onCreated={() => {
+                refresh();
+                setEditingNews(null);
+              }}
+              initialData={editingNews || undefined}
+              key={editingNews?._id || 'new'}
+            />
+            {Object.keys(isLoading).map(postId => (
+              <div key={`loading-${postId}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mb-2" />
+                  <p>Loading blog post data...</p>
+                </div>
+              </div>
+            ))}
+          </>
         </Dialog>
       </div>
 
@@ -177,7 +254,7 @@ export default function NewsEditor() {
           </div>
         ) : !news || news.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
-            <p>No news articles found.</p>
+            <p>No blog posts found.</p>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -248,7 +325,7 @@ export default function NewsEditor() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8"
-                          onClick={() => window.open(`/news/${item.slug || item._id}`, '_blank')}
+                          onClick={() => window.open(`/blog/${item.slug || item._id}`, '_blank')}
                         >
                           <Eye className="h-4 w-4" />
                           <span className="sr-only">View</span>
