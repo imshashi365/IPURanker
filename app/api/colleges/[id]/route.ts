@@ -5,11 +5,12 @@ import College from '@/models/College';
 // GET /api/colleges/[id] - Get a single college
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<Record<string, string>> }
 ) {
+  const { id } = await context.params;
   await dbConnect();
   try {
-    const college = await College.findById(params.id);
+    const college = await College.findById(id);
     if (!college) {
       return NextResponse.json(
         { success: false, error: 'College not found' },
@@ -32,8 +33,9 @@ export async function GET(
 // PUT /api/colleges/[id] - Update a college
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<Record<string, string>> }
 ) {
+  const { id } = await context.params;
   await dbConnect();
   try {
     const body = await request.json();
@@ -61,7 +63,7 @@ export async function PUT(
     };
 
     const college = await College.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: updateData },
       { new: true, runValidators: true }
     );
@@ -89,11 +91,12 @@ export async function PUT(
 // DELETE /api/colleges/[id] - Delete a college
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<Record<string, string>> }
 ) {
+  const { id } = await context.params;
   await dbConnect();
   try {
-    const deletedCollege = await College.findByIdAndDelete(params.id);
+    const deletedCollege = await College.findByIdAndDelete(id);
     if (!deletedCollege) {
       return NextResponse.json(
         { success: false, error: 'College not found' },

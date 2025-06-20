@@ -29,7 +29,7 @@ declare global {
     createdAt: Date | string;
   }
 
-  interface BlogListResponse {
+  export interface BlogListResponse {
     success: boolean;
     data: BlogPost[];
     pagination?: {

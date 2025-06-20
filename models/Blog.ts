@@ -166,7 +166,6 @@ const BlogSchema = new Schema<IBlog>({
 
 // Indexes for better query performance
 BlogSchema.index({ title: 'text', content: 'text', excerpt: 'text' });
-BlogSchema.index({ slug: 1 }, { unique: true });
 BlogSchema.index({ status: 1, publishedAt: -1 });
 
 // Pre-save hook to ensure slug is URL-friendly

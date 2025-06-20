@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import NewsGrid from "@/components/news-grid"
+import NewsCategoryGrid from "@/components/news-category-grid";
 
 export default function NewsPage() {
   return (
@@ -25,31 +25,31 @@ export default function NewsPage() {
 
         <TabsContent value="all">
           <Suspense fallback={<NewsGridSkeleton />}>
-            <NewsGrid category="all" />
+            <NewsCategoryGrid category="all" />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="admission">
           <Suspense fallback={<NewsGridSkeleton />}>
-            <NewsGrid category="admission" />
+            <NewsCategoryGrid category="admission" />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="counseling">
           <Suspense fallback={<NewsGridSkeleton />}>
-            <NewsGrid category="counseling" />
+            <NewsCategoryGrid category="counseling" />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="cutoffs">
           <Suspense fallback={<NewsGridSkeleton />}>
-            <NewsGrid category="cutoffs" />
+            <NewsCategoryGrid category="cutoffs" />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="events">
           <Suspense fallback={<NewsGridSkeleton />}>
-            <NewsGrid category="events" />
+            <NewsCategoryGrid category="events" />
           </Suspense>
         </TabsContent>
       </Tabs>

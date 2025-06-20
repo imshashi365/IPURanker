@@ -95,7 +95,7 @@ export const useBlogPostForm = ({
       const processedData = processBlogPostData({
         ...formData,
         // Convert comma-separated tags to array
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        tags: formData.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean),
       });
 
       const method = initialData?._id ? 'PUT' : 'POST';

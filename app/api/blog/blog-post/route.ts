@@ -21,7 +21,7 @@ async function findBlogByIdOrSlug(id: string) {
   return blog;
 }
 
-// GET /api/blog/[id] - Get a single blog post
+// GET /api/blog/blog-post/[id] - Get a single blog post
 export async function GET(
   request: NextRequest,
   context: { params: Promise<Record<string, string>> }

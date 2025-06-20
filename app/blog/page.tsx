@@ -13,12 +13,18 @@ async function getBlogPosts() {
       .sort({ publishedAt: -1 })
       .lean();
       
-    return posts.map(post => ({
-      ...post,
-      _id: post._id.toString(),
-      publishedAt: post.publishedAt?.toISOString() || new Date().toISOString(),
-      tags: post.tags || [],
-    }));
+    return posts.map(post => {
+      const plainPost = post.toObject ? post.toObject() : post;
+      return {
+        _id: plainPost._id.toString(),
+        slug: plainPost.slug,
+        title: plainPost.title,
+        featuredImage: plainPost.featuredImage,
+        excerpt: plainPost.excerpt,
+        publishedAt: plainPost.publishedAt?.toISOString() || new Date().toISOString(),
+        tags: plainPost.tags || [],
+      };
+    });
   } catch (error) {
     console.error('Error fetching blog posts:', error);
     return [];
@@ -50,7 +56,7 @@ export default async function BlogPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post) => (
+          {posts.map((post: any) => (
             <article key={post._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
               <Link href={`/blog/${post.slug}`}>
                 <div className="h-48 bg-gray-200 overflow-hidden">

@@ -288,12 +288,11 @@ export const BlogPostForm = ({
                   control={control}
                   render={({ field }) => (
                     <RichTextEditor
-                      value={field.value}
+                      content={field.value}
                       onChange={(content) => {
                         field.onChange(content);
                         handleContentChange(content);
                       }}
-                      onBlur={field.onBlur}
                       placeholder="Write your post content here..."
                     />
                   )}
@@ -329,7 +328,7 @@ export const BlogPostForm = ({
           </Card>
 
           <SEOFields
-            metaTitle={watch('metaTitle')}
+            metaTitle={watch('metaTitle') || ''}
             metaDescription={watch('metaDescription') || ''}
             canonicalUrl={watch('canonicalUrl') || ''}
             ogTitle={watch('ogTitle') || ''}
