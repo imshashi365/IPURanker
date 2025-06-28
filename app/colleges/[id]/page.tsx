@@ -48,22 +48,20 @@ async function getCollegeData(id: string) {
   }
 }
 
-type Props = {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+type CollegePageParams = {
+  id: string;
 };
 
 export async function generateMetadata(
-  { params }: Props,
+  { params }: { params: CollegePageParams },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  // You can add metadata generation logic here if needed
   return {
     title: 'College Details',
   };
 }
 
-export default async function CollegePage({ params }: Props) {
+export default async function CollegePage({ params }: { params: CollegePageParams }) {
   const college = await getCollegeData(params.id);
 
   if (!college) {
