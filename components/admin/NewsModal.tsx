@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Image as ImageIcon, X, Upload } from "lucide-react";
-import { uploadFile, validateFileSize, isImageFile } from "@/lib/upload";
+import { validateFileSize, isImageFile } from "@/lib/upload";
 import { generateSlug } from "@/lib/text-utils";
 
 // Define the NewsItem type to match the Blog model
@@ -39,7 +39,7 @@ type FormData = {
   status: string;
   tags: string;
   author: string;
-  featuredImage: string;
+  featuredImage: string | File; // Can be either a URL string or a File object
   metaTitle: string;
   metaDescription: string;
   isNews: boolean;
@@ -75,7 +75,7 @@ export default function NewsModal({
     status: "draft",
     tags: "",
     author: "",
-    featuredImage: "",
+    featuredImage: "", // Can be empty string, URL string, or File object
     metaTitle: "",
     metaDescription: "",
     isNews: true
@@ -206,51 +206,50 @@ export default function NewsModal({
     }));
   };
   
-  const handleFeaturedImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!isImageFile(file)) {
-      setError('Please upload a valid image file (JPEG, PNG, GIF, WebP)');
+      setError("Please upload a valid image file (JPG, PNG, GIF, WEBP, or SVG)");
       return;
     }
-    
-    if (!validateFileSize(file, 5)) { // 5MB limit
-      setError('Image size should be less than 5MB');
+
+    if (!validateFileSize(file, 5)) { // 5MB max
+      setError("Image size should be less than 5MB");
       return;
     }
-    
+
+    setIsUploading(true);
+    setError(null);
+
     try {
-      setIsUploading(true);
-      setError(null);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setFeaturedImagePreview(previewUrl);
       
-      const imageUrl = await uploadFile(file);
+      // The actual upload will happen during form submission
       setFormData(prev => ({
         ...prev,
-        featuredImage: imageUrl,
-        isNews: true // Ensure isNews is preserved
+        featuredImage: file // This is now properly typed to accept File objects
       }));
-      setFeaturedImagePreview(imageUrl);
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload image');
+    } catch (err) {
+      console.error("Error processing image:", err);
+      setError("Failed to process image. Please try again.");
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
   
   const removeFeaturedImage = () => {
     setFormData(prev => ({
       ...prev,
-      featuredImage: "",
-      isNews: true // Ensure isNews is preserved
+      featuredImage: ""
     }));
     setFeaturedImagePreview("");
   };
-  
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -268,74 +267,51 @@ export default function NewsModal({
       return;
     }
 
-    // Ensure we have a valid slug
-    let slug = formData.slug;
-    if (!slug) {
-      slug = formData.title
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/--+/g, '-');
-      
-      // Update form data with generated slug
-      setFormData(prev => ({
-        ...prev,
-        slug
-      }));
-    }
-
     try {
-      const method = isEditMode ? 'PUT' : 'POST';
-      const url = isEditMode && initialData?._id ? `/api/blog/${initialData._id}` : '/api/blog';
-
-      // Generate slug from title if not provided
-      const slug = formData.slug || generateSlug(formData.title);
+      const url = isEditMode && initialData?._id 
+        ? `/api/blog/${initialData._id}` 
+        : '/api/blog';
       
-      const payload = {
-        ...formData,
-        slug,
-        isNews: true, // Ensure this is always true for blog posts
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-      };
-
+      const method = isEditMode ? 'PUT' : 'POST';
+      
+      // Create FormData for the request
+      const formDataToSend = new FormData();
+      
+      // Add all form fields to FormData
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('slug', formData.slug || generateSlug(formData.title));
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('publishedAt', new Date(formData.publishedAt).toISOString());
+      formDataToSend.append('excerpt', formData.excerpt);
+      formDataToSend.append('content', formData.content);
+      formDataToSend.append('status', formData.status);
+      formDataToSend.append('tags', formData.tags);
+      formDataToSend.append('author', formData.author);
+      formDataToSend.append('metaTitle', formData.metaTitle || formData.title);
+      formDataToSend.append('metaDescription', formData.metaDescription || formData.excerpt || '');
+      formDataToSend.append('isNews', 'true');
+      
+      // Handle featured image
+      if (formData.featuredImage) {
+        if (formData.featuredImage instanceof File) {
+          formDataToSend.append('featuredImage', formData.featuredImage);
+        } else if (typeof formData.featuredImage === 'string') {
+          formDataToSend.append('featuredImageUrl', formData.featuredImage);
+        }
+      }
+      
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        // Don't set Content-Type header when using FormData
+        // The browser will set it with the correct boundary
+        body: formDataToSend,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to save blog post');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save blog post');
       }
-      
-      // Reset form
-      if (!isEditMode) {
-        setFormData({
-          title: "",
-          slug: "",
-          category: "",
-          publishedAt: new Date().toISOString().split('T')[0],
-          excerpt: "",
-          content: "",
-          status: "draft",
-          tags: "",
-          author: "",
-          featuredImage: "",
-          metaTitle: "",
-          metaDescription: "",
-          isNews: true
-        });
-        setFeaturedImagePreview("");
-      } else {
-        // Update the preview if in edit mode
-        setFeaturedImagePreview(formData.featuredImage);
-      }
-      
-      if (onCreated) onCreated();
+
       onClose();
     } catch (err: any) {
       setError(err.message || `Failed to ${isEditMode ? 'update' : 'create'} blog post`);
@@ -439,7 +415,7 @@ export default function NewsModal({
                             type="file"
                             className="sr-only"
                             accept="image/*"
-                            onChange={handleFeaturedImageChange}
+                            onChange={handleImageUpload}
                             disabled={isUploading}
                           />
                         </label>
@@ -453,7 +429,7 @@ export default function NewsModal({
                   type="file"
                   className="hidden"
                   accept="image/*"
-                  onChange={handleFeaturedImageChange}
+                  onChange={handleImageUpload}
                   disabled={isUploading}
                 />
               </div>

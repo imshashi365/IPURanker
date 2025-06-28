@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import mime from 'mime-types';
-import connect from '@/lib/mongodb';
+import { uploadImage } from '@/lib/cloudinary';
 
 export async function POST(request: Request) {
-  await connect();
-  
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -37,25 +33,12 @@ export async function POST(request: Request) {
       );
     }
     
-    // Generate unique filename
-    const extension = mime.extension(file.type) || '';
-    const filename = `${uuidv4()}.${extension}`;
-    
-    // In production, you'd want to use a cloud storage service like AWS S3, Cloudinary, or Firebase Storage
-    // For development, we'll save to the public/uploads directory
-    const uploadDir = join(process.cwd(), 'public/uploads');
-    const filePath = join(uploadDir, filename);
-    
-    // Convert file to buffer and write to disk
+    // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    // In a real app, you'd want to ensure the upload directory exists
-    // and handle file storage appropriately for your deployment environment
-    await writeFile(filePath, buffer);
-    
-    // Return the public URL
-    const publicUrl = `/uploads/${filename}`;
+    // Upload to Cloudinary
+    const publicUrl = await uploadImage(buffer);
     
     return NextResponse.json({
       success: true,
@@ -67,23 +50,10 @@ export async function POST(request: Request) {
     
   } catch (error) {
     console.error('Upload error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to upload file';
     return NextResponse.json(
-      { success: false, error: 'Failed to upload file' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }
 }
-
-// Add this to ensure the directory exists
-import { mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-
-const ensureUploadDir = async () => {
-  const uploadDir = join(process.cwd(), 'public/uploads');
-  if (!existsSync(uploadDir)) {
-    await mkdir(uploadDir, { recursive: true });
-  }
-};
-
-// Call this when the module loads
-ensureUploadDir().catch(console.error);

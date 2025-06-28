@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Blog, { IBlog } from '@/models/Blog';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
 
 type BlogDocument = IBlog & {
   _id: string;
@@ -8,33 +17,64 @@ type BlogDocument = IBlog & {
 };
 
 // POST /api/blog - Create a new blog post
+// Helper function to upload base64 image to Cloudinary
+async function uploadBase64Image(base64Data: string, folder = 'blog-images') {
+  try {
+    const uploadResponse = await cloudinary.uploader.upload(`data:image/png;base64,${base64Data}`, {
+      folder,
+      resource_type: 'auto',
+    });
+    return uploadResponse.secure_url;
+  } catch (error) {
+    console.error('Error uploading image to Cloudinary:', error);
+    throw new Error('Failed to upload image to Cloudinary');
+  }
+}
+
 export async function POST(req: NextRequest) {
   console.log('Received POST request to /api/blog');
   try {
     await dbConnect();
     console.log('Database connected, processing request...');
-    const body = await req.json();
-    const {
-      title,
-      content,
-      author,
-      tags,
-      publishedAt,
-      excerpt,
-      category,
-      status = 'draft',
-      slug,
-      featuredImage,
-      metaTitle,
-      metaDescription,
-      ogTitle,
-      ogDescription,
-      ogImage,
-      twitterTitle,
-      twitterDescription,
-      twitterImage,
-      canonicalUrl,
-    } = body;
+    const formData = await req.formData();
+    
+    // Extract all fields from form data
+    const title = formData.get('title') as string;
+    const content = formData.get('content') as string;
+    const author = formData.get('author') as string;
+    const tags = formData.get('tags');
+    const publishedAt = formData.get('publishedAt');
+    const excerpt = formData.get('excerpt') as string;
+    const category = formData.get('category') as string;
+    const status = (formData.get('status') as 'draft' | 'published' | 'archived' | null) || 'draft';
+    const slug = formData.get('slug') as string;
+    const metaTitle = formData.get('metaTitle') as string;
+    const metaDescription = formData.get('metaDescription') as string;
+    const ogTitle = formData.get('ogTitle') as string;
+    const ogDescription = formData.get('ogDescription') as string;
+    const twitterTitle = formData.get('twitterTitle') as string;
+    const twitterDescription = formData.get('twitterDescription') as string;
+    const canonicalUrl = formData.get('canonicalUrl') as string;
+    
+    // Handle file upload
+    const featuredImageFile = formData.get('featuredImage') as File | null;
+    let featuredImage = formData.get('featuredImageUrl') as string | null;
+    
+    // If a new image was uploaded, process it
+    if (featuredImageFile && featuredImageFile.size > 0) {
+      try {
+        const arrayBuffer = await featuredImageFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64 = buffer.toString('base64');
+        featuredImage = await uploadBase64Image(base64, 'blog-featured-images');
+      } catch (error) {
+        console.error('Error processing uploaded image:', error);
+        return NextResponse.json(
+          { success: false, error: 'Failed to process uploaded image' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Validate required fields
     if (!title || !content || !author) {
@@ -51,30 +91,39 @@ export async function POST(req: NextRequest) {
       .replace(/\s+/g, '-')
       .replace(/--+/g, '-');
 
-    const blog = await Blog.create({
+    // Create blog post data object
+    const blogData: Partial<IBlog> = {
       title,
       slug: slugToUse,
       content,
       author,
-      tags: Array.isArray(tags) ? tags : (tags || '').split(',').map((t: string) => t.trim()).filter(Boolean),
-      publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
+      tags: Array.isArray(tags) 
+        ? tags 
+        : (tags ? String(tags).split(',').map(t => t.trim()).filter(Boolean) : []),
+      publishedAt: publishedAt ? new Date(String(publishedAt)) : new Date(),
       isNews: true,
       excerpt: excerpt || content.substring(0, 160) + (content.length > 160 ? '...' : ''),
       category,
-      status,
-      featuredImage,
+      status: status as 'draft' | 'published' | 'archived',
       metaTitle: metaTitle || title,
       metaDescription: metaDescription || (excerpt || content).substring(0, 160),
       ogTitle: ogTitle || title,
       ogDescription: ogDescription || excerpt || content.substring(0, 160),
-      ogImage: ogImage || featuredImage,
       twitterTitle: twitterTitle || title,
       twitterDescription: twitterDescription || excerpt || content.substring(0, 160),
-      twitterImage: twitterImage || featuredImage,
       canonicalUrl,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    };
+
+    // Only include image fields if we have an image
+    if (featuredImage) {
+      blogData.featuredImage = featuredImage;
+      blogData.ogImage = ogTitle || featuredImage;
+      blogData.twitterImage = twitterTitle || featuredImage;
+    }
+
+    const blog = await Blog.create(blogData);
     
     console.log('Blog post created successfully:', { id: blog._id, title: blog.title });
     return NextResponse.json(

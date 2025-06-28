@@ -60,29 +60,35 @@ export async function PUT(
 ) {
   const { id } = await context.params;
   await dbConnect();
+  
   try {
-    const body = await request.json();
-    const {
-      title,
-      slug,
-      category,
-      publishedAt,
-      excerpt,
-      content,
-      status,
-      tags,
-      author,
-      featuredImage,
-      metaTitle,
-      metaDescription,
-      ogTitle,
-      ogDescription,
-      ogImage,
-      twitterTitle,
-      twitterDescription,
-      twitterImage,
-      canonicalUrl,
-    } = body;
+    // Parse form data
+    const formData = await request.formData();
+    
+    // Get form data values
+    const title = formData.get('title') as string;
+    const slug = formData.get('slug') as string;
+    const category = formData.get('category') as string;
+    const publishedAt = formData.get('publishedAt') as string;
+    const excerpt = formData.get('excerpt') as string;
+    const content = formData.get('content') as string;
+    const status = formData.get('status') as string;
+    const tags = formData.get('tags') as string;
+    const author = formData.get('author') as string;
+    const featuredImageFile = formData.get('featuredImage') as File | null;
+    const featuredImageUrl = formData.get('featuredImageUrl') as string | null;
+    const metaTitle = formData.get('metaTitle') as string;
+    const metaDescription = formData.get('metaDescription') as string;
+    const isNews = formData.get('isNews') === 'true';
+    
+    // Check if the blog post exists
+    const existingBlog = await findBlogByIdOrSlug(id);
+    if (!existingBlog) {
+      return NextResponse.json(
+        { success: false, error: 'Blog post not found' },
+        { status: 404 }
+      );
+    }
 
     // Validate required fields
     if (!title || !content || !author) {
@@ -98,44 +104,90 @@ export async function PUT(
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/--+/g, '-');
+      
+    // Handle featured image upload if a new file is provided
+    let featuredImageUrlToUse = existingBlog.featuredImage;
+    
+    if (featuredImageFile && featuredImageFile.size > 0) {
+      try {
+        // Upload to Cloudinary
+        const cloudinary = require('@/lib/cloudinary');
+        
+        // Convert File to ArrayBuffer and then to Buffer
+        const arrayBuffer = await featuredImageFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Upload the buffer to Cloudinary
+        const uploadResult = await cloudinary.uploadImage(buffer, 'blog-featured-images');
+        featuredImageUrlToUse = uploadResult;
+        
+        // Delete old image if it exists and is from Cloudinary
+        if (existingBlog.featuredImage && existingBlog.featuredImage.includes('res.cloudinary.com')) {
+          try {
+            const publicId = cloudinary.getPublicIdFromUrl(existingBlog.featuredImage);
+            if (publicId) {
+              await cloudinary.deleteImage(publicId);
+            }
+          } catch (deleteError) {
+            console.error('Error deleting old image:', deleteError);
+            // Continue even if deletion fails
+          }
+        }
+      } catch (uploadError) {
+        console.error('Error uploading image to Cloudinary:', uploadError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to upload featured image' },
+          { status: 500 }
+        );
+      }
+    } else if (featuredImageUrl) {
+      // Use the provided URL if no new file is uploaded
+      featuredImageUrlToUse = featuredImageUrl;
+    }
 
-    const updateData = {
+    const updateData: any = {
       title,
       slug: slugToUse,
       category,
-      publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
-      excerpt: excerpt || content.substring(0, 160) + (content.length > 160 ? '...' : ''),
+      publishedAt: new Date(publishedAt),
+      excerpt,
       content,
-      status: status || 'draft',
-      tags: Array.isArray(tags) ? tags : (tags || '').split(',').map((t: string) => t.trim()).filter(Boolean),
+      status,
+      tags: Array.isArray(tags) ? tags : tags?.split(',').map((t: string) => t.trim()),
       author,
-      featuredImage,
       metaTitle: metaTitle || title,
-      metaDescription: metaDescription || (excerpt || content).substring(0, 160),
-      ogTitle: ogTitle || title,
-      ogDescription: ogDescription || excerpt || content.substring(0, 160),
-      ogImage: ogImage || featuredImage,
-      twitterTitle: twitterTitle || title,
-      twitterDescription: twitterDescription || excerpt || content.substring(0, 160),
-      twitterImage: twitterImage || featuredImage,
-      canonicalUrl,
+      metaDescription: metaDescription || excerpt || '',
+      isNews,
       updatedAt: new Date(),
     };
-
-    const blog = await Blog.findByIdAndUpdate(
-      id,
+    
+    // Only update featuredImage if we have a new one
+    if (featuredImageUrlToUse) {
+      updateData.featuredImage = featuredImageUrlToUse;
+      // Also update social sharing images if they were using the old featured image
+      if (existingBlog.featuredImage === existingBlog.ogImage) {
+        updateData.ogImage = featuredImageUrlToUse;
+      }
+      if (existingBlog.featuredImage === existingBlog.twitterImage) {
+        updateData.twitterImage = featuredImageUrlToUse;
+      }
+    }
+    
+    // Update the blog post
+    const updatedBlog = await Blog.findByIdAndUpdate(
+      existingBlog._id,
       { $set: updateData },
       { new: true, runValidators: true }
     );
 
-    if (!blog) {
+    if (!updatedBlog) {
       return NextResponse.json(
         { success: false, error: 'Blog post not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: blog });
+    return NextResponse.json({ success: true, data: updatedBlog });
   } catch (error) {
     console.error('Error updating blog post:', error);
     return NextResponse.json(

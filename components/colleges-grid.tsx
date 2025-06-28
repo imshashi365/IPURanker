@@ -96,10 +96,25 @@ export default function CollegesGrid() {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Link href={"/colleges/" + (college._id || "")} className="w-full">
-              <Button variant="outline" className="w-full font-semibold transition-colors hover:bg-blue-50 hover:border-blue-600 hover:text-blue-700">
+          <CardFooter className="p-4 pt-0">
+            <Link href={`/colleges/${college._id}`} className="w-full">
+              <Button className="w-full" size="sm">
                 View College Profile
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="ml-2 h-4 w-4"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
               </Button>
             </Link>
           </CardFooter>
@@ -108,4 +123,3 @@ export default function CollegesGrid() {
     </div>
   );
 }
-

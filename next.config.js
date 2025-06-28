@@ -12,24 +12,12 @@ const nextConfig = {
   },
   // Image optimization
   images: {
-    domains: [
-      'localhost',
-      'vercel.app',
-      'ipuraner.com',
-      'img.collegepravesh.com',
-      'collegepravesh.com',
-      'bpitindia.com',
-      'www.msit.ac.in',
-      'bpitindia.ac.in',
-      'msit.in',
-      'www.msit.in',
-      'images.unsplash.com',
-      'res.cloudinary.com',
-      'lh3.googleusercontent.com',
-      'via.placeholder.com'
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
     ],
-    formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 60,
   },
   async rewrites() {
     return [

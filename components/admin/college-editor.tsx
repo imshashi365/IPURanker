@@ -58,6 +58,7 @@ export default function CollegeEditor() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingCollege, setEditingCollege] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { colleges, loading, error, refresh } = useColleges();
 
   // Form state
@@ -71,8 +72,10 @@ export default function CollegeEditor() {
   const [avgCTC, setAvgCTC] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [website, setWebsite] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   async function handleAddCollege(e: React.FormEvent) {
     e.preventDefault();
@@ -148,6 +151,29 @@ export default function CollegeEditor() {
     }
   }
 
+  async function handleDeleteCollege(collegeId: string) {
+    if (!confirm('Are you sure you want to delete this college? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/colleges/${collegeId}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to delete college');
+      
+      // Refresh the colleges list
+      await refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to delete college');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   function handleEditClick(college: any) {
     setEditingCollege(college);
     setName(college.name);
@@ -162,6 +188,43 @@ export default function CollegeEditor() {
     setAvgCTC(college.placementStats?.avgCTC || "");
     setIsEditDialogOpen(true);
   }
+
+  const handleImageUpload = async () => {
+    if (!imageFile) {
+      alert("Please select an image file first.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      formData.append('folder', 'college-logos');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      setLogoUrl(data.url);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Error uploading image. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -227,6 +290,12 @@ export default function CollegeEditor() {
               <div className="space-y-2">
                 <Label htmlFor="logoUrl">College Logo URL</Label>
                 <Input id="logoUrl" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="Paste image URL here" />
+                <div className="flex items-center gap-2 mt-2">
+                  <Input id="logo-upload" type="file" onChange={handleFileChange} className="flex-grow" />
+                  <Button type="button" onClick={handleImageUpload} disabled={!imageFile || isUploading}>
+                    {isUploading ? "Uploading..." : "Upload Image"}
+                  </Button>
+                </div>
               </div>
               {errorMsg && <div className="text-red-500 text-sm">{errorMsg}</div>}
               <DialogFooter>
@@ -275,22 +344,22 @@ export default function CollegeEditor() {
                     </div>
                   </TableCell>
                   <TableCell>{college.placementStats?.placementRate || "-"}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditClick(college)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>View Profile</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <TableCell className="text-right space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditClick(college)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteCollege(college._id)}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -354,6 +423,12 @@ export default function CollegeEditor() {
             <div className="space-y-2">
               <Label htmlFor="edit-logoUrl">College Logo URL</Label>
               <Input id="edit-logoUrl" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="Paste image URL here" />
+              <div className="flex items-center gap-2 mt-2">
+                <Input id="logo-upload-edit" type="file" onChange={handleFileChange} className="flex-grow" />
+                <Button type="button" onClick={handleImageUpload} disabled={!imageFile || isUploading}>
+                  {isUploading ? "Uploading..." : "Upload Image"}
+                </Button>
+              </div>
             </div>
             {errorMsg && <div className="text-red-500 text-sm">{errorMsg}</div>}
             <DialogFooter>
