@@ -54,18 +54,25 @@ type Props = {
 };
 
 export async function generateMetadata(
-  { params }: { params: { id: string } },
-  parent: ResolvingMetadata
+  { params }: { params: Promise<{ id: string }> },
+  parent: ResolvingMetadata,
 ): Promise<Metadata> {
+  const { id } = await params;
   return {
-    title: 'College Details',
+    title: `College Details: ${id}`,
   };
 }
 
-export default async function CollegePage({ params, searchParams }: Props) {
-  const id = await params;
+export default async function CollegePage({ 
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { id } = await params;
   const sParams = await searchParams;
-  const college = await getCollegeData(id.id);
+  const college = await getCollegeData(id);
 
   if (!college) {
     notFound();
