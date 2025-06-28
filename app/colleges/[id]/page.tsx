@@ -47,7 +47,12 @@ async function getCollegeData(id: string) {
   }
 }
 
-export default async function CollegePage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: { id: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+export default async function CollegePage({ params }: PageProps) {
   const college = await getCollegeData(params.id);
 
   if (!college) {
@@ -56,3 +61,5 @@ export default async function CollegePage({ params }: { params: { id: string } }
 
   return <CollegePageClient college={college} />;
 }
+
+module.exports = CollegePage;

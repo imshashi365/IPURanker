@@ -3,7 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   // Enable server-side rendering and API routes in development
   experimental: {
-    serverActions: true,
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
   // Environment variables configuration
   env: {
