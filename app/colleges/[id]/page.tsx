@@ -2,6 +2,7 @@ import CollegePageClient from './CollegePageClient';
 import { notFound } from 'next/navigation';
 import dbConnect from '@/lib/mongodb';
 import mongoose from 'mongoose';
+import { Metadata, ResolvingMetadata } from 'next';
 
 // Define the schema
 const CollegeSchema = new mongoose.Schema({
@@ -47,14 +48,22 @@ async function getCollegeData(id: string) {
   }
 }
 
-interface PageProps {
-  params: {
-    id: string;
+type Props = {
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  // You can add metadata generation logic here if needed
+  return {
+    title: 'College Details',
   };
-  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default async function CollegePage({ params }: PageProps) {
+export default async function CollegePage({ params }: Props) {
   const college = await getCollegeData(params.id);
 
   if (!college) {
