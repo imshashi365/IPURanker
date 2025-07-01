@@ -32,8 +32,8 @@ export default function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-foreground tracking-wider uppercase mb-4">Contact</h3>
             <address className="text-sm text-muted-foreground not-italic space-y-3">
-              <p>Guru Gobind Singh Indraprastha University<br />Sector 16C, Dwarka<br />New Delhi - 110078</p>
-              <p>Email: <a href="mailto:info@ipu.ac.in" className="hover:text-primary transition-colors">info@ipu.ac.in</a></p>
+              <p>IPUBuddy<br />Sector 15, Noida<br />UP - 201301</p>
+              <p>Email: <a href="mailto:mail@ipubuddy.com" className="hover:text-primary transition-colors">mail@ipubuddy.com</a></p>
             </address>
           </div>
 
