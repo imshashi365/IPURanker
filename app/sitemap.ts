@@ -3,8 +3,22 @@ import { connectToDB } from '@/lib/mongoose';
 import College from '@/models/College';
 import Blog from '@/models/Blog';
 
+function ensureHttpsAndWww(url: string): string {
+  // Ensure the URL starts with https://
+  let processedUrl = url.startsWith('http') ? url : `https://${url}`;
+  
+  // Ensure www. is present
+  if (!processedUrl.includes('www.')) {
+    processedUrl = processedUrl.replace('https://', 'https://www.');
+  }
+  
+  // Remove trailing slash for consistency
+  return processedUrl.endsWith('/') ? processedUrl.slice(0, -1) : processedUrl;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://ipubuddy.com';
+  // Use the domain with www for consistency
+  const baseUrl = ensureHttpsAndWww('ipubuddy.com');
   
   // Connect to database
   await connectToDB();
