@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
+import GoogleAnalytics from "@/components/GoogleAnalytics"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -45,6 +46,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="light" suppressHydrationWarning>
+      <head>
+        <GoogleAnalytics />
+      </head>
       <body className={inter.className}>
         <ThemeProvider 
           attribute="class" 

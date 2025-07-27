@@ -10,6 +10,7 @@ const nextConfig = {
   // Environment variables configuration
   env: {
     MONGODB_URI: process.env.MONGODB_URI,
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
     // Add other environment variables here
   },
   // Image optimization
