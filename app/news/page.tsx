@@ -2,18 +2,36 @@ import { Suspense } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import NewsCategoryGrid from "@/components/news-category-grid";
+import NewsCategoryGrid from "@/components/news-category-grid"
+import RealTimeNews from "@/components/real-time-news"
 
 export default function NewsPage() {
   return (
-    <div className="container mx-auto px-4 py-8 mt-16">
+    <div className="container mx-auto px-4 py-8 mt-16 space-y-12">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">News & Admission Updates</h1>
-        <p className="text-gray-600">
+        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          News & Admission Updates
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">
           Stay updated with the latest news, admission notices, counseling schedules, and more from GGSIPU.
         </p>
       </div>
 
+      {/* Real-time News Section */}
+      <section>
+        <RealTimeNews limit={6} />
+      </section>
+
+      {/* Separator */}
+      <div className="flex items-center space-x-4">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600" />
+        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-background px-4">
+          Archived News & Updates
+        </span>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600" />
+      </div>
+
+      {/* Archived News Tabs */}
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-5 mb-8">
           <TabsTrigger value="all">All Updates</TabsTrigger>
