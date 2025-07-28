@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Placements", href: "/placements" },
-  { name: "Blog", href: "/blog" },
+  { name: "News", href: "/news", badge: "LIVE" },
   { name: "Colleges", href: "/colleges" },
 ]
 
@@ -40,16 +40,22 @@ export default function Navbar() {
         </div>
         <div className="hidden lg:flex lg:gap-x-8">
           {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "text-sm font-medium transition-colors",
-                pathname === item.href ? "text-primary" : "text-muted-foreground hover:text-primary",
+            <div key={item.name} className="relative">
+              <Link
+                href={item.href}
+                className={cn(
+                  "text-sm font-medium transition-colors",
+                  pathname === item.href ? "text-primary" : "text-muted-foreground hover:text-primary",
+                )}
+              >
+                {item.name}
+              </Link>
+              {item.badge && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium animate-pulse">
+                  {item.badge}
+                </span>
               )}
-            >
-              {item.name}
-            </Link>
+            </div>
           ))}
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">

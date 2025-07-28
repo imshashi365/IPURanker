@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight, BookOpen, Building, GraduationCap, TrendingUp } from "lucide-react"
 import PlacementStats from "@/components/placement-stats"
-import LatestNews from "@/components/latest-news"
+import LatestNewsWidget from "@/components/latest-news-widget"
 import TopColleges from "@/components/top-colleges"
-import ThemeToggle from "@/components/ui/theme-toggle"
 
 export default function Home() {
   return (
@@ -97,7 +96,7 @@ export default function Home() {
               </Link>
             </div>
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-              <LatestNews />
+              <LatestNewsWidget />
             </div>
           </div>
         </section>
