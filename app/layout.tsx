@@ -45,17 +45,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="light" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <GoogleAnalytics />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning={true}>
         <ThemeProvider 
           attribute="class" 
-          defaultTheme="light" 
-          forcedTheme="light" 
-          enableSystem={false} 
-          disableTransitionOnChange
+          defaultTheme="system" 
+          enableSystem={true} 
+          disableTransitionOnChange={false}
+          storageKey="ipubuddy-theme"
         >
           <div className="flex flex-col min-h-screen bg-background">
             <Navbar />
