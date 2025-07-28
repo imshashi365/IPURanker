@@ -20,11 +20,11 @@ We thrive when we:
 **🚫 Zero Tolerance**
 
 We do not tolerate:
-❌ Harassment, intimidation, or discrimination of any kind.
-❌ Offensive or inappropriate language.
-❌ Unethical practices like plagiarism or code theft.
-❌ Gatekeeping or dismissive behavior.
-❌ Off-topic, spammy, or self-promotional content.
+- ❌ Harassment, intimidation, or discrimination of any kind.
+- ❌ Offensive or inappropriate language.
+- ❌ Unethical practices like plagiarism or code theft.
+- ❌ Gatekeeping or dismissive behavior.
+- ❌ Off-topic, spammy, or self-promotional content.
 
 ---
 
