@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DarkModeToggle } from "@/components/ui/dark-mode-toggle"
 import { cn } from "@/lib/utils"
 
 const navigation = [
@@ -27,9 +28,10 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="flex lg:hidden">
+          <DarkModeToggle />
           <button
             type="button"
-            className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-muted-foreground"
+            className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-muted-foreground ml-2"
             onClick={() => setMobileMenuOpen(true)}
           >
             <span className="sr-only">Open main menu</span>
@@ -50,7 +52,8 @@ export default function Navbar() {
             </Link>
           ))}
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-4">
+          <DarkModeToggle />
           <Link
             href="/admin"
             className="text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -73,14 +76,17 @@ export default function Navbar() {
               <GraduationCap className="h-8 w-8 text-primary" />
               <span className="ml-3 text-2xl font-bold text-foreground">IPURanker</span>
             </Link>
-            <button
-              type="button"
-              className="-m-2.5 rounded-md p-2.5 text-muted-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <span className="sr-only">Close menu</span>
-              <X className="h-6 w-6" aria-hidden="true" />
-            </button>
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <button
+                type="button"
+                className="-m-2.5 rounded-md p-2.5 text-muted-foreground"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="sr-only">Close menu</span>
+                <X className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <div className="mt-6 flow-root">
             <div className="-my-6 divide-y divide-gray-500/10">
