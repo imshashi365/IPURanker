@@ -51,12 +51,7 @@ export default function Navbar() {
           ))}
         </div>
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          <Link
-            href="/admin"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            Admin <span aria-hidden="true">→</span>
-          </Link>
+         
         </div>
       </nav>
 
