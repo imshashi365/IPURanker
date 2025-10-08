@@ -6,13 +6,14 @@ import { ThemeProvider } from "@/components/theme-provider"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import GoogleAnalytics from "@/components/GoogleAnalytics"
-import Script from "next/script" // Import for Google AdSense
+import Script from "next/script"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "IPUBuddy - GGSIPU Admission, Colleges, Cutoffs & Predictor Tool",
-  description: "Explore GGSIPU colleges, admission process, seat matrix, placement data, and use our powerful College Predictor & Cutoff Analyzer to plan your admission smartly.",
+  description:
+    "Explore GGSIPU colleges, admission process, seat matrix, placement data, and use our powerful College Predictor & Cutoff Analyzer to plan your admission smartly.",
   keywords: [
     "GGSIPU admission 2025",
     "IPU colleges list",
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
     "IP University seat matrix",
     "IPU fees structure",
     "GGSIPU placement",
-    "IPUBuddy"
+    "IPUBuddy",
   ],
   icons: {
     icon: "/favicon.ico",
@@ -32,12 +33,13 @@ export const metadata: Metadata = {
   creator: "Shashi Kumar",
   openGraph: {
     title: "IPUBuddy - Smart Admission Guidance for GGSIPU",
-    description: "All-in-one portal for GGSIPU aspirants. Get latest cutoff trends, explore college options, and predict your admission chances now!",
+    description:
+      "All-in-one portal for GGSIPU aspirants. Get latest cutoff trends, explore college options, and predict your admission chances now!",
     url: "https://www.ipubuddy.com",
     siteName: "IPUBuddy",
     locale: "en_IN",
     type: "website",
-  }
+  },
 }
 
 export default function RootLayout({
@@ -49,19 +51,21 @@ export default function RootLayout({
     <html lang="en" className="light" suppressHydrationWarning>
       <head>
         <GoogleAnalytics />
+        {/* ✅ Google AdSense Script */}
         <Script
+          id="adsense-script"
           async
+          strategy="afterInteractive"
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1364236216660499"
           crossOrigin="anonymous"
-          strategy="lazyOnload"
         />
       </head>
       <body className={inter.className}>
-        <ThemeProvider 
-          attribute="class" 
-          defaultTheme="light" 
-          forcedTheme="light" 
-          enableSystem={false} 
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          forcedTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <div className="flex flex-col min-h-screen bg-background">
